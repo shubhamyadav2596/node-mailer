@@ -1,50 +1,61 @@
-const dotenv = require("dotenv")
+const dotenv = require("dotenv");
 dotenv.config();
 
 const express = require("express");
 const cors = require("cors");
-const dns = require("dns");
 const nodemailer = require("nodemailer");
 
 const app = express();
 
-
-app.use(cors({
-  origin: process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(",") : "*",
-  credentials: true
-}));
+/**
+ * CORS (safe for production)
+ */
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URLS
+      ? process.env.FRONTEND_URLS.split(",")
+      : "*",
+    methods: ["GET", "POST"],
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /**
- * Nodemailer Transport
+ * SMTP TRANSPORT (FIXED)
+ * ⚠️ Gmail + Render = unstable, but this is best possible config
  */
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: false,
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // IMPORTANT: true for 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  requireTLS: true,
-  family: 4,
-  connectionTimeout: 20000,
-  socketTimeout: 20000,
   tls: {
     rejectUnauthorized: false,
   },
-  pool: {
-    maxConnections: 5,
-    maxMessages: 200,
-    rateDelta: 4000,
-    rateLimit: true,
-  },
+  connectionTimeout: 20000,
+  greetingTimeout: 20000,
+  socketTimeout: 20000,
 });
 
 /**
- * Health Check
+ * Verify SMTP on startup
+ */
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ SMTP Connection Failed:", error.message);
+  } else {
+    console.log("✅ SMTP Connected Successfully");
+  }
+});
+
+/**
+ * HEALTH CHECK
  */
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -54,7 +65,7 @@ app.get("/", (req, res) => {
 });
 
 /**
- * Contact Form API
+ * CONTACT API
  */
 app.post("/api/contact", async (req, res) => {
   try {
@@ -71,31 +82,56 @@ app.post("/api/contact", async (req, res) => {
       from: `"${name}" <${process.env.EMAIL_USER}>`,
       to: process.env.RECEIVER_EMAIL,
       replyTo: email,
-      subject: `New Contact Form Submission`,
+      subject: "New Contact Form Submission",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px;">
-          <h2>New Contact Form Submission</h2>
+  <div style="font-family: Arial, sans-serif; background:#f4f6f9; padding:20px;">
+    
+    <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e5e5e5;">
+      
+      <!-- Header -->
+      <div style="background:#4f46e5;color:#ffffff;padding:16px 20px;text-align:center;">
+        <h2 style="margin:0;font-size:20px;">📩 New Contact Form Submission</h2>
+      </div>
 
-          <table cellpadding="8" cellspacing="0" border="1" style="border-collapse: collapse; width: 100%;">
-            <tr>
-              <td><strong>Name</strong></td>
-              <td>${name}</td>
-            </tr>
-            <tr>
-              <td><strong>Email</strong></td>
-              <td>${email}</td>
-            </tr>
-            <tr>
-              <td><strong>Phone</strong></td>
-              <td>${phone}</td>
-            </tr>
-            <tr>
-              <td><strong>Message</strong></td>
-              <td>${message}</td>
-            </tr>
-          </table>
+      <!-- Body -->
+      <div style="padding:20px;">
+
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          
+          <tr>
+            <td style="padding:12px;border-bottom:1px solid #eee;font-weight:bold;width:120px;color:#333;">Name</td>
+            <td style="padding:12px;border-bottom:1px solid #eee;color:#555;">${name}</td>
+          </tr>
+
+          <tr>
+            <td style="padding:12px;border-bottom:1px solid #eee;font-weight:bold;color:#333;">Email</td>
+            <td style="padding:12px;border-bottom:1px solid #eee;color:#555;">${email}</td>
+          </tr>
+
+          <tr>
+            <td style="padding:12px;border-bottom:1px solid #eee;font-weight:bold;color:#333;">Phone</td>
+            <td style="padding:12px;border-bottom:1px solid #eee;color:#555;">${phone}</td>
+          </tr>
+
+          <tr>
+            <td style="padding:12px;font-weight:bold;color:#333;vertical-align:top;">Message</td>
+            <td style="padding:12px;color:#555;line-height:1.5;">
+              ${message}
+            </td>
+          </tr>
+
+        </table>
+
+        <!-- Footer Note -->
+        <div style="margin-top:20px;padding:12px;background:#f9fafb;border-radius:6px;font-size:12px;color:#777;text-align:center;">
+          This message was sent from your website contact form
         </div>
-      `,
+
+      </div>
+    </div>
+
+  </div>
+`,
     });
 
     return res.status(200).json({
@@ -103,18 +139,18 @@ app.post("/api/contact", async (req, res) => {
       message: "Message sent successfully",
     });
   } catch (error) {
-    console.error("Email Error:", error);
+    console.error("❌ Email Error:", error);
 
     return res.status(500).json({
       success: false,
       message: "Failed to send message",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      error: error.message,
     });
   }
 });
 
 /**
- * 404 Route
+ * 404
  */
 app.use((req, res) => {
   res.status(404).json({
