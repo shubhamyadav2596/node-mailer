@@ -10,33 +10,17 @@ const app = express();
 /**
  * CORS CONFIG
  */
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://portfolio-1-9ajc.onrender.com/",
-  ...process.env.FRONTEND_URLS?.split(", ").map((url) => url.trim()) || []
-]
-   process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
-  
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow Postman, server-to-server requests
-    if (!origin) return callback(null, true);
-
-    if (
-      allowedOrigins.length === 0 ||
-      allowedOrigins.includes(origin)
-    ) {
-      return callback(null, true);
-    }
-
-    return callback(new Error("Not allowed by CORS"));
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
-
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: [
+      "https://portfolio-1-9ajc.onrender.com",
+      "http://localhost:3000",
+      "http://localhost:5173",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
