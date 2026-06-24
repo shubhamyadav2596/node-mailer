@@ -8,37 +8,31 @@ const { Resend } = require("resend");
 const app = express();
 
 /**
- * ✅ FIXED CORS CONFIG (IMPORTANT FOR RENDER)
+ * CORS CONFIG
  */
 const allowedOrigins = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(",").map((o) => o.trim())
+  ? process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
   : [];
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // allow requests with no origin (like Postman or server-to-server)
+  origin: (origin, callback) => {
+    // Allow Postman, server-to-server requests
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.length === 0) {
-      return callback(null, true); // fallback allow all (dev mode)
+    if (
+      allowedOrigins.length === 0 ||
+      allowedOrigins.includes(origin)
+    ) {
+      return callback(null, true);
     }
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error("Not allowed by CORS"));
-    }
+    return callback(new Error("Not allowed by CORS"));
   },
-  credentials: true,
-  methods: ["GET", "POST", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-// MUST be before routes
 app.use(cors(corsOptions));
-
-// IMPORTANT: handle preflight requests explicitly
-app.options("*", cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -59,7 +53,7 @@ app.get("/", (req, res) => {
 });
 
 /**
- * CONTACT API (RESEND)
+ * CONTACT API
  */
 app.post("/api/contact", async (req, res) => {
   try {
@@ -80,7 +74,6 @@ app.post("/api/contact", async (req, res) => {
       html: `
         <div style="font-family:Arial;padding:20px;background:#f4f6f9;">
           <div style="max-width:600px;margin:auto;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #eee;">
-
             <div style="background:#4f46e5;color:#fff;padding:15px;text-align:center;">
               <h2 style="margin:0;">📩 New Contact Form Submission</h2>
             </div>
@@ -105,7 +98,6 @@ app.post("/api/contact", async (req, res) => {
                 </tr>
               </table>
             </div>
-
           </div>
         </div>
       `,
