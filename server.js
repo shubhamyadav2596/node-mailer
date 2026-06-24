@@ -8,27 +8,13 @@ const nodemailer = require("nodemailer");
 const app = express();
 
 
-const allowedOrigins = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
-  : [];
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow Postman, mobile apps, server-side requests
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
-    },
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: process.env.FRONTEND_URLS.split(","),
+  credentials: true
+}));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 /**
  * Nodemailer Transport
