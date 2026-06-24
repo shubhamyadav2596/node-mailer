@@ -20,8 +20,8 @@ app.use(express.urlencoded({ extended: true }));
  * Nodemailer Transport
  */
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
   secure: false,
   auth: {
     user: process.env.EMAIL_USER,
