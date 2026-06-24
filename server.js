@@ -28,6 +28,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
   requireTLS: true,
+  family: 4,
   connectionTimeout: 10000,
   socketTimeout: 10000,
   pool: {
