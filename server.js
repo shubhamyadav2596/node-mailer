@@ -29,21 +29,30 @@ const allowedOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
   : [];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow Postman, mobile apps, server-side requests
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow Postman, mobile apps, server-side requests
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    if (allowedOrigins.length === 0) {
+      console.warn(
+        "No FRONTEND_URLS configured: allowing all origins for CORS. Set FRONTEND_URLS in Render to restrict allowed origins."
+      );
+      return callback(null, true);
+    }
 
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
-    },
-    credentials: true,
-  })
-);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.warn(`Blocked CORS origin: ${origin}`);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options(cors(corsOptions));
 
 app.use(express.json());
 
