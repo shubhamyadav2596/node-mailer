@@ -8,6 +8,23 @@ const nodemailer = require("nodemailer");
 const app = express();
 
 
+// Validate required environment variables early so deploys fail fast with clear logs
+function validateEnv() {
+  const required = ["EMAIL_USER", "EMAIL_PASS", "RECEIVER_EMAIL"];
+  const missing = required.filter((k) => !process.env[k]);
+
+  if (missing.length) {
+    console.error(
+      `Missing required environment variables: ${missing.join(", ")}`
+    );
+    // Exit so the platform (Render) shows a clear failure and the logs contain the reason
+    process.exit(1);
+  }
+}
+
+validateEnv();
+
+
 const allowedOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
   : [];
@@ -40,6 +57,18 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
+// Verify SMTP transporter on startup to catch auth/connect issues immediately
+transporter
+  .verify()
+  .then(() => {
+    console.log("✅ SMTP transporter verified and ready to send emails");
+  })
+  .catch((err) => {
+    console.error("✖ SMTP transporter verification failed:", err);
+    // Exit so hosting platform surfaces the error (prevent silent 500s)
+    process.exit(1);
+  });
 
 /**
  * Health Check
