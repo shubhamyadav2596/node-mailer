@@ -3,6 +3,7 @@ dotenv.config();
 
 const express = require("express");
 const cors = require("cors");
+const dns = require("dns");
 const nodemailer = require("nodemailer");
 
 const app = express();
@@ -20,8 +21,8 @@ app.use(express.urlencoded({ extended: true }));
  * Nodemailer Transport
  */
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT || 587),
   secure: false,
   auth: {
     user: process.env.EMAIL_USER,
@@ -29,8 +30,11 @@ const transporter = nodemailer.createTransport({
   },
   requireTLS: true,
   family: 4,
-  connectionTimeout: 10000,
-  socketTimeout: 10000,
+  connectionTimeout: 20000,
+  socketTimeout: 20000,
+  tls: {
+    rejectUnauthorized: false,
+  },
   pool: {
     maxConnections: 5,
     maxMessages: 200,
