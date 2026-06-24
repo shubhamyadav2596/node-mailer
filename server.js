@@ -7,18 +7,12 @@ const { Resend } = require("resend");
 
 const app = express();
 
-/**
- * CORS CONFIG
- */
 app.use(
   cors({
-    origin: [
-      "https://portfolio-1-9ajc.onrender.com",
-      "http://localhost:3000",
-      "http://localhost:5173",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: process.env.FRONTEND_URLS
+      ? process.env.FRONTEND_URLS.split(",")
+      : "*",
+    credentials: true,
   })
 );
 
@@ -41,7 +35,7 @@ app.get("/", (req, res) => {
 });
 
 /**
- * CONTACT API
+ * CONTACT API (RESEND)
  */
 app.post("/api/contact", async (req, res) => {
   try {
@@ -62,6 +56,7 @@ app.post("/api/contact", async (req, res) => {
       html: `
         <div style="font-family:Arial;padding:20px;background:#f4f6f9;">
           <div style="max-width:600px;margin:auto;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #eee;">
+
             <div style="background:#4f46e5;color:#fff;padding:15px;text-align:center;">
               <h2 style="margin:0;">📩 New Contact Form Submission</h2>
             </div>
@@ -86,6 +81,7 @@ app.post("/api/contact", async (req, res) => {
                 </tr>
               </table>
             </div>
+
           </div>
         </div>
       `,
