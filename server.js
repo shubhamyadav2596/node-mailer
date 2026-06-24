@@ -8,51 +8,25 @@ const nodemailer = require("nodemailer");
 const app = express();
 
 
-// Validate required environment variables early so deploys fail fast with clear logs
-function validateEnv() {
-  const required = ["EMAIL_USER", "EMAIL_PASS", "RECEIVER_EMAIL"];
-  const missing = required.filter((k) => !process.env[k]);
-
-  if (missing.length) {
-    console.error(
-      `Missing required environment variables: ${missing.join(", ")}`
-    );
-    // Exit so the platform (Render) shows a clear failure and the logs contain the reason
-    process.exit(1);
-  }
-}
-
-validateEnv();
-
-
 const allowedOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
   : [];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow Postman, mobile apps, server-side requests
-    if (!origin) return callback(null, true);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow Postman, mobile apps, server-side requests
+      if (!origin) return callback(null, true);
 
-    if (allowedOrigins.length === 0) {
-      console.warn(
-        "No FRONTEND_URLS configured: allowing all origins for CORS. Set FRONTEND_URLS in Render to restrict allowed origins."
-      );
-      return callback(null, true);
-    }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    console.warn(`Blocked CORS origin: ${origin}`);
-    return callback(new Error(`Origin ${origin} not allowed by CORS`));
-  },
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-app.options(cors(corsOptions));
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -66,18 +40,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
-
-// Verify SMTP transporter on startup to catch auth/connect issues immediately
-transporter
-  .verify()
-  .then(() => {
-    console.log("✅ SMTP transporter verified and ready to send emails");
-  })
-  .catch((err) => {
-    console.error("✖ SMTP transporter verification failed:", err);
-    // Exit so hosting platform surfaces the error (prevent silent 500s)
-    process.exit(1);
-  });
 
 /**
  * Health Check
