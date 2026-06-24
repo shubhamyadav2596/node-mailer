@@ -10,9 +10,13 @@ const app = express();
 /**
  * CORS CONFIG
  */
-const allowedOrigins = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
-  : [];
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://portfolio-1-9ajc.onrender.com/",
+  ...process.env.FRONTEND_URLS?.split(", ").map((url) => url.trim()) || []
+]
+   process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
+  
 
 const corsOptions = {
   origin: (origin, callback) => {
