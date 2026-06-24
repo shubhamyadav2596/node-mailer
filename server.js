@@ -7,17 +7,38 @@ const { Resend } = require("resend");
 
 const app = express();
 
+/**
+ * ✅ FIXED CORS CONFIG (IMPORTANT FOR RENDER)
+ */
+const allowedOrigins = process.env.FRONTEND_URLS
+  ? process.env.FRONTEND_URLS.split(",").map((o) => o.trim())
+  : [];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URLS
-    ? process.env.FRONTEND_URLS.split(",")
-    : true,
+  origin: function (origin, callback) {
+    // allow requests with no origin (like Postman or server-to-server)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.length === 0) {
+      return callback(null, true); // fallback allow all (dev mode)
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
+// MUST be before routes
 app.use(cors(corsOptions));
-app.options(cors(corsOptions));
+
+// IMPORTANT: handle preflight requests explicitly
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
